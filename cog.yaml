@@ -1,0 +1,18 @@
+# Configuration for Cog ⚙️
+build:
+  gpu: true
+  python_version: "3.10"
+  system_packages:
+    - "libgl1-mesa-glx"
+    - "libglib2.0-0"
+  python_packages:
+    - "torch==2.0.1"
+    - "torchvision"
+    - "safetensors==0.3.1"
+    - "diffusers==0.19.0"
+    - "transformers==4.30.2"
+    - "accelerate==0.20.3"
+    - "omegaconf"
+
+# predict.py defines how predictions are run on your model
+predict: "predict.py:Predictor"

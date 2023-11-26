@@ -18,4 +18,4 @@ Then, you can run
 	
 **inpainting** predictions:
 	
-	cog predict -i image=@demo.png -i mask=@mask.png
+	cog predict -i image=@demo.png -i mask=@mask.png -i prompt="a tabby cat, high resolution, sitting on a park bench"

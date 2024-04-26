@@ -6,24 +6,58 @@ import math
 import torch
 from PIL import Image
 from diffusers import AutoPipelineForText2Image, AutoPipelineForImage2Image, AutoPipelineForInpainting, UNet2DConditionModel
-from diffusers import (DDIMScheduler,
+from diffusers import (
     DPMSolverMultistepScheduler,
-    EulerAncestralDiscreteScheduler,
+    DPMSolverSinglestepScheduler,
+    KDPM2DiscreteScheduler,
     EulerDiscreteScheduler,
+    EulerAncestralDiscreteScheduler,
     HeunDiscreteScheduler,
-    PNDMScheduler
+    LMSDiscreteScheduler,
+    DDIMScheduler,
+    DEISMultistepScheduler,
+    UniPCMultistepScheduler,
+    LCMScheduler,
+    PNDMScheduler,
+    KDPM2AncestralDiscreteScheduler,
 )
 
 MODEL_CACHE = "cache"
 MODEL_INPAINTING_CACHE = "inpainting_cache"
 
 SCHEDULERS = {
-    "DDIM": DDIMScheduler,
-    "DPMSolverMultistep": DPMSolverMultistepScheduler,
-    "HeunDiscrete": HeunDiscreteScheduler,
-    "K_EULER_ANCESTRAL": EulerAncestralDiscreteScheduler,
-    "K_EULER": EulerDiscreteScheduler,
-    "PNDM": PNDMScheduler,
+    "Euler": (EulerDiscreteScheduler, {}),
+    "Euler Karras": (EulerDiscreteScheduler, {"use_karras_sigmas": True}),
+    "Euler A": (EulerAncestralDiscreteScheduler, {}),
+    "Euler A Karras": (EulerAncestralDiscreteScheduler, {"use_karras_sigmas": True}),
+
+    "Heun": (HeunDiscreteScheduler, {}),
+    "LMS": (LMSDiscreteScheduler, {}),
+    "LMS Karras": (LMSDiscreteScheduler, {"use_karras_sigmas": True}),
+
+    "DDIM": (DDIMScheduler, {}),
+    "DEIS": (DEISMultistepScheduler, {}),
+    "UniPC": (UniPCMultistepScheduler, {}),
+    "PNDM" : (PNDMScheduler, {}),
+
+    "DPM++ 2M": (DPMSolverMultistepScheduler, {}),
+    "DPM++ 2M Karras": (DPMSolverMultistepScheduler, {"use_karras_sigmas": True}),
+    "DPM++ 2M SDE": (DPMSolverMultistepScheduler, {"algorithm_type": "sde-dpmsolver++"}),
+    "DPM++ 2M SDE Karras": (DPMSolverMultistepScheduler, {"use_karras_sigmas": True, "algorithm_type": "sde-dpmsolver++"}),
+    "DPM++ SDE": (DPMSolverSinglestepScheduler, {}),
+    "DPM++ SDE Karras": (DPMSolverSinglestepScheduler, {"use_karras_sigmas": True}),
+
+    "DPM++ 2M Lu": (DPMSolverMultistepScheduler, {"use_lu_lambdas": True}),
+    "DPM++ 2M Ef": (DPMSolverMultistepScheduler, {"euler_at_final": True}),
+    "DPM++ 2M SDE Lu": (DPMSolverMultistepScheduler, {"use_lu_lambdas": True, "algorithm_type": "sde-dpmsolver++"}),
+    "DPM++ 2M SDE Ef": (DPMSolverMultistepScheduler, {"algorithm_type": "sde-dpmsolver++", "euler_at_final": True}),
+
+    "DPM2": (KDPM2DiscreteScheduler, {}),
+    "DPM2 Karras": (KDPM2DiscreteScheduler, {"use_karras_sigmas": True}),
+    "DPM2 A" : (KDPM2AncestralDiscreteScheduler, {}),
+    "DPM2 A Karras" : (KDPM2AncestralDiscreteScheduler, {"use_karras_sigmas": True}),
+
+    "LCM" : (LCMScheduler, {}),
 }
 
 class Predictor(BasePredictor):
@@ -107,11 +141,7 @@ class Predictor(BasePredictor):
         scheduler: str = Input(
             description="Scheduler",
             choices=SCHEDULERS.keys(),
-            default="K_EULER_ANCESTRAL",
-        ),
-        use_karras_sigmas: bool = Input(
-            description="Use karras sigmas or not", 
-            default=False
+            default="Euler A Karras",
         ),
         seed: int = Input(
             description="Leave blank to randomize", 
@@ -124,7 +154,6 @@ class Predictor(BasePredictor):
         generator = torch.Generator('cuda').manual_seed(seed)
         
         print("Scheduler:", scheduler)
-        print("Using karras sigmas:", use_karras_sigmas)
         print("Using seed:", seed)
         
         if image and mask:
@@ -132,10 +161,8 @@ class Predictor(BasePredictor):
             init_image = Image.open(image).convert('RGB')
             init_mask = Image.open(mask).convert('RGB')
             
-            self.inpainting_pipe.scheduler = SCHEDULERS[scheduler].from_config(
-                self.inpainting_pipe.scheduler.config, 
-                use_karras_sigmas=use_karras_sigmas,
-                final_sigmas_type='zero')
+            scheduler = SCHEDULERS[scheduler]
+            self.inpainting_pipe.scheduler = scheduler[0].from_config(scheduler[1]).from_config(self.text2img_pipe.scheduler.config)
 
             output = self.inpainting_pipe(
                 prompt=[prompt] * num_outputs,
@@ -153,10 +180,8 @@ class Predictor(BasePredictor):
             print("Mode: img2img")
             init_image = Image.open(image).convert('RGB')
 
-            self.img2img_pipe.scheduler = SCHEDULERS[scheduler].from_config(
-                self.img2img_pipe.scheduler.config, 
-                use_karras_sigmas=use_karras_sigmas,
-                final_sigmas_type='zero')
+            scheduler = SCHEDULERS[scheduler]
+            self.img2img_pipe.scheduler = scheduler[0].from_config(scheduler[1]).from_config(self.text2img_pipe.scheduler.config)
 
             output = self.img2img_pipe(
                 prompt=[prompt] * num_outputs,
@@ -171,10 +196,8 @@ class Predictor(BasePredictor):
             )
         else:
             print("Mode: text2img")
-            self.text2img_pipe.scheduler = SCHEDULERS[scheduler].from_config(
-                self.text2img_pipe.scheduler.config, 
-                use_karras_sigmas=use_karras_sigmas,
-                final_sigmas_type='zero')
+            scheduler = SCHEDULERS[scheduler]
+            self.text2img_pipe.scheduler = scheduler[0].from_config(scheduler[1]).from_config(self.text2img_pipe.scheduler.config)
 
             output = self.text2img_pipe(
                 prompt=[prompt] * num_outputs,

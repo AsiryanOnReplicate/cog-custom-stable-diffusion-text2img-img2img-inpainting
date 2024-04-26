@@ -9,7 +9,7 @@ build:
     - "torch==2.0.1"
     - "torchvision"
     - "safetensors==0.3.1"
-    - "diffusers==0.19.0"
+    - "diffusers==0.27.2"
     - "transformers==4.30.2"
     - "accelerate==0.20.3"
     - "omegaconf"

@@ -1,4 +1,5 @@
 # Prediction interface for Cog ⚙️
+from typing import List
 from cog import BasePredictor, Input, Path
 import os
 import math
@@ -79,6 +80,12 @@ class Predictor(BasePredictor):
             le=1920, 
             default=728
         ),
+        num_outputs: int = Input(
+            description="Number of images to output",
+            ge=1,
+            le=4,
+            default=1,
+        ),
         strength: float = Input(
             description="Strength/weight", 
             ge=0, 
@@ -110,7 +117,7 @@ class Predictor(BasePredictor):
             description="Leave blank to randomize", 
             default=None
         ),
-    ) -> Path:
+    ) -> List[Path]:
         """Run a single prediction on the model"""
         if (seed == 0) or (seed == None):
             seed = int.from_bytes(os.urandom(2), byteorder='big')
@@ -127,10 +134,12 @@ class Predictor(BasePredictor):
             
             self.inpainting_pipe.scheduler = SCHEDULERS[scheduler].from_config(
                 self.inpainting_pipe.scheduler.config, 
-                use_karras_sigmas=use_karras_sigmas)
+                use_karras_sigmas=use_karras_sigmas,
+                final_sigmas_type='zero')
 
-            output_image = self.inpainting_pipe(
-                prompt=prompt,
+            output = self.inpainting_pipe(
+                prompt=[prompt] * num_outputs,
+                negative_prompt=[negative_prompt] * num_outputs,
                 image=init_image,
                 mask_image=init_mask,
                 strength=strength,
@@ -138,45 +147,50 @@ class Predictor(BasePredictor):
                 guidance_scale=guidance_scale,
                 width=self.base(width),
                 height=self.base(height),
-                negative_prompt=negative_prompt,
                 generator=generator,
-            ).images[0]
+            )
         elif image:
             print("Mode: img2img")
             init_image = Image.open(image).convert('RGB')
 
             self.img2img_pipe.scheduler = SCHEDULERS[scheduler].from_config(
                 self.img2img_pipe.scheduler.config, 
-                use_karras_sigmas=use_karras_sigmas)
+                use_karras_sigmas=use_karras_sigmas,
+                final_sigmas_type='zero')
 
-            output_image = self.img2img_pipe(
-                prompt=prompt,
+            output = self.img2img_pipe(
+                prompt=[prompt] * num_outputs,
+                negative_prompt=[negative_prompt] * num_outputs,
                 image=init_image,
                 strength=strength,
                 num_inference_steps=num_inference_steps,
                 guidance_scale=guidance_scale,
                 width=self.base(width),
                 height=self.base(height),
-                negative_prompt=negative_prompt,
                 generator=generator,
-            ).images[0]
+            )
         else:
             print("Mode: text2img")
             self.text2img_pipe.scheduler = SCHEDULERS[scheduler].from_config(
                 self.text2img_pipe.scheduler.config, 
-                use_karras_sigmas=use_karras_sigmas)
+                use_karras_sigmas=use_karras_sigmas,
+                final_sigmas_type='zero')
 
-            output_image = self.text2img_pipe(
-                prompt=prompt,
+            output = self.text2img_pipe(
+                prompt=[prompt] * num_outputs,
+                negative_prompt=[negative_prompt] * num_outputs,
                 strength=strength,
                 num_inference_steps=num_inference_steps,
                 guidance_scale=guidance_scale,
                 width=self.base(width),
                 height=self.base(height),
-                negative_prompt=negative_prompt,
-                generator=generator,
-            ).images[0]
+                generator=generator
+            )
         
-        out_path = Path(f"/tmp/output.png")
-        output_image.save(out_path)
-        return  out_path
+        output_paths = []
+        for i, image in enumerate(output.images):
+            output_path = f"/tmp/out-{i}.png"
+            image.save(output_path)
+            output_paths.append(Path(output_path))
+        
+        return output_paths

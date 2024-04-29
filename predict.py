@@ -154,7 +154,7 @@ class Predictor(BasePredictor):
         generator = torch.Generator('cuda').manual_seed(seed)
         
         print("Scheduler:", scheduler)
-        print("Using seed:", seed)
+        print("Seed:", seed)
         
         if image and mask:
             print("Mode: inpainting")

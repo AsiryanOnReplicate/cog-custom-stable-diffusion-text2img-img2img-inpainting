@@ -162,7 +162,7 @@ class Predictor(BasePredictor):
             init_mask = Image.open(mask).convert('RGB')
             
             scheduler = SCHEDULERS[scheduler]
-            self.inpainting_pipe.scheduler = scheduler[0].from_config(scheduler[1]).from_config(self.text2img_pipe.scheduler.config)
+            self.inpainting_pipe.scheduler = scheduler[0].from_config(scheduler[1]).from_config(self.inpainting_pipe.scheduler.config)
 
             output = self.inpainting_pipe(
                 prompt=[prompt] * num_outputs,
@@ -181,7 +181,7 @@ class Predictor(BasePredictor):
             init_image = Image.open(image).convert('RGB')
 
             scheduler = SCHEDULERS[scheduler]
-            self.img2img_pipe.scheduler = scheduler[0].from_config(scheduler[1]).from_config(self.text2img_pipe.scheduler.config)
+            self.img2img_pipe.scheduler = scheduler[0].from_config(scheduler[1]).from_config(self.img2img_pipe.scheduler.config)
 
             output = self.img2img_pipe(
                 prompt=[prompt] * num_outputs,

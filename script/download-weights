@@ -21,10 +21,10 @@ StableDiffusionPipeline.from_single_file(
     torch_dtype=torch.float16
 ).save_pretrained(MODEL_CACHE)
 
+# Inpainting model
 if not os.path.exists(MODEL_INPAINTING_CACHE):
     os.makedirs(MODEL_INPAINTING_CACHE)
 
-# Inpainting model
 model_inpainting_url = "https://huggingface.co/asiryan/absolutereality/blob/main/absolutereality_v181-inpainting.safetensors"
 
 StableDiffusionInpaintPipeline.from_single_file(

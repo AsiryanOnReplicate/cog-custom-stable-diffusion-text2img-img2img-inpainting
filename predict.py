@@ -24,6 +24,7 @@ from diffusers import (
 
 MODEL_CACHE = "cache"
 MODEL_INPAINTING_CACHE = "inpainting_cache"
+#VAE_CACHE = "vae-cache"
 
 SCHEDULERS = {
     "Euler": (EulerDiscreteScheduler, {}),
@@ -62,21 +63,30 @@ SCHEDULERS = {
 
 class Predictor(BasePredictor):
     def setup(self):
+
+        #vae = AutoencoderKL.from_single_file(
+        #    "https://huggingface.co/stabilityai/sd-vae-ft-mse-original/blob/main/vae-ft-mse-840000-ema-pruned.safetensors",
+        #    cache_dir=VAE_CACHE
+        #)
+
         self.text2img_pipe = AutoPipelineForText2Image.from_pretrained(
-            MODEL_CACHE, 
+            MODEL_CACHE,
+            #vae=vae,
             safety_checker = None, 
-            custom_pipeline="lpw_stable_diffusion"
+            custom_pipeline="lpw_stable_diffusion",
         ).to("cuda")
 
         self.img2img_pipe = AutoPipelineForImage2Image.from_pretrained(
-            MODEL_CACHE, 
+            MODEL_CACHE,
+            #vae=vae,
             safety_checker = None, 
             custom_pipeline="lpw_stable_diffusion"
         ).to("cuda")
 
         unet = UNet2DConditionModel.from_pretrained(MODEL_INPAINTING_CACHE, subfolder="unet", in_channels=9, low_cpu_mem_usage=False, ignore_mismatched_sizes=True)
         self.inpainting_pipe = AutoPipelineForInpainting.from_pretrained(
-            MODEL_INPAINTING_CACHE, 
+            MODEL_INPAINTING_CACHE,
+            #vae=vae,
             unet=unet,
             safety_checker = None
         ).to("cuda")

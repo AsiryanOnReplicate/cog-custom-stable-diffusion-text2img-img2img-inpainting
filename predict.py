@@ -5,7 +5,7 @@ import os
 import math
 import torch
 from PIL import Image
-from diffusers import AutoPipelineForText2Image, AutoPipelineForImage2Image, AutoPipelineForInpainting, UNet2DConditionModel
+from diffusers import AutoPipelineForText2Image, AutoPipelineForImage2Image, AutoPipelineForInpainting, UNet2DConditionModel#, AutoencoderKL
 from diffusers import (
     DPMSolverMultistepScheduler,
     DPMSolverSinglestepScheduler,
@@ -73,7 +73,7 @@ class Predictor(BasePredictor):
             MODEL_CACHE,
             #vae=vae,
             safety_checker = None, 
-            custom_pipeline="lpw_stable_diffusion",
+            custom_pipeline="lpw_stable_diffusion"
         ).to("cuda")
 
         self.img2img_pipe = AutoPipelineForImage2Image.from_pretrained(

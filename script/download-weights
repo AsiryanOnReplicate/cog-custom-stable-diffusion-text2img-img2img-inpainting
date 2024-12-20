@@ -4,11 +4,22 @@
 import os
 import sys
 import torch
-from diffusers import StableDiffusionPipeline, StableDiffusionInpaintPipeline
+from diffusers import StableDiffusionPipeline, StableDiffusionInpaintPipeline#, AutoencoderKL
 
 # append project directory to path so predict.py can be imported
 sys.path.append('.')
-from predict import MODEL_CACHE, MODEL_INPAINTING_CACHE
+from predict import MODEL_CACHE, MODEL_INPAINTING_CACHE#, VAE_CACHE
+
+
+# vae model
+#if not os.path.exists(VAE_CACHE):
+#    os.makedirs(VAE_CACHE, exist_ok=True)
+
+#vae_url = "https://huggingface.co/stabilityai/sd-vae-ft-mse-original/blob/main/vae-ft-mse-840000-ema-pruned.safetensors"
+#vae = AutoencoderKL.from_single_file(
+#    vae_url,
+#    cache_dir=VAE_CACHE
+#)
 
 # Text2Img and Img2Img models
 if not os.path.exists(MODEL_CACHE):
